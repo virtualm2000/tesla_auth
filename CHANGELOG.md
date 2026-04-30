@@ -1,8 +1,9 @@
 # Changelog
 
-## [0.13.0] - 2026-04-22
+## [0.13.0] - 2026-04-30
 
-- Fix Tesla login URL
+- Fix Tesla token fetching via the updated callback URL
+- Fix token result rendering after Tesla's callback page changes
 
 ## [0.12.0] - 2026-02-25
 
@@ -108,6 +109,7 @@
 
 ## [0.1.0] - 2021-09-17
 
+[0.13.0]: https://github.com/adriankumpf/tesla_auth/compare/v0.12.0...v0.13.0
 [0.12.0]: https://github.com/adriankumpf/tesla_auth/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/adriankumpf/tesla_auth/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/adriankumpf/tesla_auth/compare/v0.9.0...v0.10.0
