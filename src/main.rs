@@ -26,7 +26,12 @@ window.addEventListener('DOMContentLoaded', (event) => {
     const url = window.location.toString();
 
     if (url.startsWith("tesla://auth/callback")) {
-       document.querySelector("h1.h1").innerText = "Generating Tokens …";
+       const loadingText = document.querySelector(
+           '[class*="validated-success-message"], h1.h1'
+       );
+       if (loadingText) {
+           loadingText.textContent = "Generating Tokens ...";
+       }
     }
 });
 "#;
@@ -162,11 +167,10 @@ fn main() -> anyhow::Result<()> {
                 ..
             } => *control_flow = ControlFlow::Exit,
 
-            Event::UserEvent(UserEvent::Navigation(url))
-                if url.as_str() != "about:blank" => {
-                    log::debug!("URL changed: {url}");
-                    let _ = tx.send(url);
-                }
+            Event::UserEvent(UserEvent::Navigation(url)) if url.as_str() != "about:blank" => {
+                log::debug!("URL changed: {url}");
+                let _ = tx.send(url);
+            }
 
             Event::UserEvent(UserEvent::Failure(error)) => {
                 log::error!("{error}");
@@ -260,14 +264,28 @@ fn render_error_view(error: anyhow::Error) -> String {
     let msg = js_string(&error.to_string());
     format!(
         r#"(function() {{
-            var target = document.querySelector("h1.h1");
+            var mount = document.getElementById("tesla-auth-result");
+            if (!mount) {{
+                mount = document.createElement("div");
+                mount.id = "tesla-auth-result";
+                mount.style.cssText = "position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(255,255,255,0.98);overflow:auto";
+                document.body.appendChild(mount);
+            }}
+
+            mount.replaceChildren();
+
+            var card = document.createElement("div");
+            card.style.cssText = "width:min(720px,100%);display:flex;flex-direction:column;gap:12px;padding:28px;border-radius:16px;background:#fff;box-shadow:0 16px 48px rgba(0,0,0,0.12);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif";
+
             var h4 = document.createElement("h4");
-            h4.style.textAlign = "center";
+            h4.style.cssText = "margin:0;text-align:center;font-size:28px;line-height:1.2";
             h4.textContent = "An error occurred. Please try again ...";
             var p = document.createElement("p");
-            p.style.cssText = "text-align:center;color:red;margin-bottom:20px";
+            p.style.cssText = "margin:0;text-align:center;color:#b91c1c";
             p.textContent = {msg};
-            target.replaceWith(h4, p);
+
+            card.append(h4, p);
+            mount.appendChild(card);
         }})()"#
     )
 }
@@ -278,33 +296,48 @@ fn render_tokens_view(tokens: auth::Tokens) -> String {
     let expires = js_string(&tokens.expires_in.to_string());
     format!(
         r#"(function() {{
-            var target = document.querySelector("h1.h1");
-            var frag = document.createDocumentFragment();
+            var mount = document.getElementById("tesla-auth-result");
+            if (!mount) {{
+                mount = document.createElement("div");
+                mount.id = "tesla-auth-result";
+                mount.style.cssText = "position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(255,255,255,0.98);overflow:auto";
+                document.body.appendChild(mount);
+            }}
+
+            mount.replaceChildren();
+
+            var card = document.createElement("div");
+            card.style.cssText = "width:min(900px,100%);display:flex;flex-direction:column;gap:16px;padding:28px;border-radius:16px;background:#fff;box-shadow:0 16px 48px rgba(0,0,0,0.12);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif";
 
             function addToken(label, value) {{
                 var h4 = document.createElement("h4");
-                h4.style.textAlign = "center";
+                h4.style.cssText = "margin:0;text-align:center;font-size:24px;line-height:1.2";
                 h4.textContent = label;
-                frag.appendChild(h4);
+                card.appendChild(h4);
                 var ta = document.createElement("textarea");
                 ta.readOnly = true;
                 ta.cols = 100;
                 ta.rows = 12;
-                ta.style.cssText = "resize:none;padding:4px;font-size:0.9em";
+                ta.style.cssText = "width:100%;resize:vertical;padding:12px;font:13px/1.4 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;border:1px solid #d1d5db;border-radius:12px;box-sizing:border-box";
                 ta.value = value;
                 ta.addEventListener("click", function() {{ this.setSelectionRange(0, this.value.length); }});
-                frag.appendChild(ta);
+                card.appendChild(ta);
             }}
+
+            var title = document.createElement("h3");
+            title.style.cssText = "margin:0;text-align:center;font-size:30px;line-height:1.2";
+            title.textContent = "Tesla API Tokens";
+            card.appendChild(title);
 
             addToken("Access Token", {access});
             addToken("Refresh Token", {refresh});
 
             var small = document.createElement("small");
-            small.style.cssText = "margin-top:12px;margin-bottom:20px;text-align:center;color:seagreen";
+            small.style.cssText = "display:block;margin-top:4px;text-align:center;color:seagreen;font-size:14px";
             small.textContent = "Valid for " + {expires};
-            frag.appendChild(small);
+            card.appendChild(small);
 
-            target.replaceWith(frag);
+            mount.appendChild(card);
         }})()"#
     )
 }
